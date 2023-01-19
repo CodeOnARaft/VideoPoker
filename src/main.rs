@@ -1,15 +1,26 @@
 use iced::widget::{button, column, container, text, row,image};
 use iced::{executor, Application, Command, Element, Length, Settings, Theme};
 
+mod deck;
+mod card;
+
+use crate::deck::*;
+use crate::card::*;
+
+
 fn main() -> iced::Result {
     VideoPoker::run(Settings::default())
 }
 
-enum VideoPoker {
+enum Actions{
     Holding,
     Betting,
     HandOver,
-    Payout,
+    Payout, 
+}
+struct VideoPoker {
+   action:Actions,
+    deck:Deck
 }
 
 #[derive(Clone, Debug)]
@@ -23,21 +34,20 @@ enum Message {
 }
 
 impl Application for VideoPoker {
+    type Executor = executor::Default;
     type Message = Message;
     type Theme = Theme;
-    type Executor = executor::Default;
     type Flags = ();
 
     fn new(_flags: ()) -> (Self, Command<Message>) {
-        (Self::Betting, iced::Command::none())
+        let deck = Deck::new() ;
+        let action = Actions::Holding;
+        (Self{            action,deck           
+        }, iced::Command::none())
     }
 
     fn title(&self) -> String {
         String::from("Rust Video Poker")
-    }
-
-    fn theme(&self) -> Theme {
-        Theme::Dark
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
@@ -62,7 +72,11 @@ impl Application for VideoPoker {
                 ];
 
                 let cards = row![
-                    image(format!("{}/images/2_of_clubs.png", env!("CARGO_MANIFEST_DIR"))) .width(Length::Units(100)),
+                    image(self.deck.cards[0].image_location.clone()) .width(Length::Units(100)),
+                    image(self.deck.cards[1].image_location.clone()) .width(Length::Units(100)),
+                    image(self.deck.cards[2].image_location.clone()) .width(Length::Units(100)),
+                    image(self.deck.cards[3].image_location.clone()) .width(Length::Units(100)),
+                    image(self.deck.cards[4].image_location.clone()) .width(Length::Units(100)),
                 ];
 
                 column![text("Video Poker").size(40), 
@@ -80,5 +94,9 @@ impl Application for VideoPoker {
             .width(Length::Fill)
             .height(Length::Fill)
             .into()
+    }
+
+    fn theme(&self) -> Theme {
+        Theme::Dark
     }
 }
