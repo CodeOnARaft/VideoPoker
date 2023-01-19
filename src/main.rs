@@ -1,26 +1,28 @@
-use iced::widget::{button, column, container, text, row,image};
+use iced::widget::{button, column, container, image, row, text};
 use iced::{executor, Application, Command, Element, Length, Settings, Theme};
 
-mod deck;
 mod card;
+mod deck;
 
-use crate::deck::*;
 use crate::card::*;
-
+use crate::deck::*;
 
 fn main() -> iced::Result {
     VideoPoker::run(Settings::default())
 }
 
-enum Actions{
+enum Actions {
     Holding,
     Betting,
     HandOver,
-    Payout, 
+    Payout,
 }
 struct VideoPoker {
-   action:Actions,
-    deck:Deck
+    action: Actions,
+    deck: Deck,
+    bet: i8,
+    last_bet:i8,
+    credits:i32,
 }
 
 #[derive(Clone, Debug)]
@@ -40,10 +42,13 @@ impl Application for VideoPoker {
     type Flags = ();
 
     fn new(_flags: ()) -> (Self, Command<Message>) {
-        let deck = Deck::new() ;
+        let deck = Deck::new();
         let action = Actions::Holding;
-        (Self{            action,deck           
-        }, iced::Command::none())
+        let bet = 0;
+        let last_bet = 5;
+        let credits = 200;
+
+        (Self { action, deck,bet,last_bet,credits }, iced::Command::none())
     }
 
     fn title(&self) -> String {
@@ -51,7 +56,6 @@ impl Application for VideoPoker {
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
-        
         match message {
             _ => {}
         }
@@ -60,33 +64,54 @@ impl Application for VideoPoker {
     }
 
     fn view(&self) -> Element<Message> {
-        let content: Element<_> = match self {
-          
-            _ => {
-                let row_hold = row![
-                    button("Hold").on_press(Message::CardHoldToggle(1)),
-                    button("Hold").on_press(Message::CardHoldToggle(2)),
-                    button("Hold").on_press(Message::CardHoldToggle(3)),
-                    button("Hold").on_press(Message::CardHoldToggle(4)),
-                    button("Hold").on_press(Message::CardHoldToggle(5)),
-                ];
+        let hold_button_1 = button("Hold");
+        let hold_button_2 = button("Hold");
+        let hold_button_3 = button("Hold");
+        let hold_button_4 = button("Hold");
+        let hold_button_5 = button("Hold");
 
-                let cards = row![
-                    image(self.deck.cards[0].image_location.clone()) .width(Length::Units(100)),
-                    image(self.deck.cards[1].image_location.clone()) .width(Length::Units(100)),
-                    image(self.deck.cards[2].image_location.clone()) .width(Length::Units(100)),
-                    image(self.deck.cards[3].image_location.clone()) .width(Length::Units(100)),
-                    image(self.deck.cards[4].image_location.clone()) .width(Length::Units(100)),
-                ];
+        let bet_one = button("Bet One");
+        let bet_max = button("Bet Max");
+        let payouts = button("Payouts");
+        let deal = button("Deal");        
 
-                column![text("Video Poker").size(40), 
-                text("Payouts").size(60),
-                cards,
-                row_hold,
-                row![text("Bet - 0").size(40),text("Credits").size(40)],
-                ].into()
-            }
-        };
+        let cards = row![
+            image(&self.deck.cards[0].image_location).width(Length::Units(100)),
+            image(&self.deck.cards[1].image_location).width(Length::Units(100)),
+            image(&self.deck.cards[2].image_location).width(Length::Units(100)),
+            image(&self.deck.cards[3].image_location).width(Length::Units(100)),
+            image(&self.deck.cards[4].image_location).width(Length::Units(100)),
+        ];
+
+
+
+        match self.action {
+            _ => {}
+        }
+
+        let row_hold = row![
+            hold_button_1,
+            hold_button_2,
+            hold_button_3,
+            hold_button_4,
+            hold_button_5,            
+        ];
+
+        let row_actions = row![
+              bet_one ,
+              bet_max,
+              payouts ,
+              deal,
+        ];
+
+        let content: Element<_> = column![
+            text("Video Poker").size(60),
+            cards,
+            row_hold,
+            row![text("Bet - 0").size(20), text(format!("Credits - {}",self.credits)).size(20)],
+            row_actions
+        ]
+        .into();
 
         container(content)
             .center_x()
