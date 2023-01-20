@@ -1,6 +1,6 @@
 use iced::futures::future::OrElse;
 use iced::widget::{button, column, container, image, row, text, Space};
-use iced::{executor, Application, Command, Element, Length, Settings, Theme};
+use iced::{executor, Application, Command, Element, Length, Settings, Theme, window};
 
 mod card;
 mod deck;
@@ -9,7 +9,17 @@ use crate::card::*;
 use crate::deck::*;
 
 fn main() -> iced::Result {
-    VideoPoker::run(Settings::default())
+    let settings = Settings {
+        window: window::Settings {
+            size: (700,450),
+            resizable: false,
+            decorations: true,
+            position:window::Position::Centered,
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    VideoPoker::run(settings)
 }
 
 enum Actions {
@@ -43,17 +53,19 @@ impl Application for VideoPoker {
     type Flags = ();
 
     fn new(_flags: ()) -> (Self, Command<Message>) {
-        let deck = Deck::new();
+        let mut deck = Deck::new();
+        deck.shuffle();
+
         let action = Actions::Betting;
         let bet = 0;
         let last_bet = 5;
         let credits = 200;
         let hand = vec![
-            Card::new(CardValue::Ace, Suits::Club),
-            Card::new(CardValue::Two, Suits::Club),
-            Card::new(CardValue::Three, Suits::Club),
-            Card::new(CardValue::Four, Suits::Club),
-            Card::new(CardValue::Five, Suits::Club),
+            Card::back(),
+            Card::back(),
+            Card::back(),
+            Card::back(),
+            Card::back(),            
         ];
         (
             Self {
@@ -85,16 +97,30 @@ impl Application for VideoPoker {
             }
 
             Message::BetMax => {
-                self.bet = 5;
-                self.action = Actions::Holding;
+                self.bet = 5;            
             }
 
             Message::Deal => match self.action {
                 Actions::Betting => {
+                    self.hand = vec![
+                        self.deck.next(),
+                        self.deck.next(),
+                        self.deck.next(),
+                        self.deck.next(),
+                        self.deck.next(),                     
+                    ];
                     self.action = Actions::Holding;
                 }
 
                 Actions::Holding => {
+                  for x in 0..5 {
+                    if !self.hand[x].hold {
+                        self.hand[x] = self.deck.next();
+                    }
+                  }
+                    self.check_win(); 
+
+                    self.deck.shuffle();
                     self.action = Actions::Betting;
                 }
                 _ => {}
@@ -110,7 +136,7 @@ impl Application for VideoPoker {
         let mut bet_one = button("Bet One");
         let mut bet_max = button("Bet Max");
         let mut payouts = button("Payouts");
-        let mut deal = button("Deal").on_press(Message::Deal);
+        let deal = button("Deal").on_press(Message::Deal);
 
         let mut action_holding = false;
         match self.action {
@@ -150,18 +176,19 @@ impl Application for VideoPoker {
             cards = cards.push( Space::new(Length::Units(30), Length::Units(20)));
         }
 
-        let row_actions = row![bet_one, bet_max, payouts, deal,];
+        let row_actions = row![bet_one, Space::new(Length::Units(20), Length::Units(20)), bet_max, Space::new(Length::Units(20), Length::Units(20)), payouts, Space::new(Length::Units(20), Length::Units(20)), deal,];
 
         let content: Element<_> = column![
             text("Video Poker").size(60),
-            Space::new(Length::Units(20), Length::Units(20)),
+            Space::new(Length::Units(10), Length::Units(10)),
             cards,
-            Space::new(Length::Units(20), Length::Units(20)),
+            Space::new(Length::Units(10), Length::Units(10)),
             row![
                 text(format!("Bet - {}", self.bet)).size(20),
                 Space::new(Length::Units(20), Length::Units(20)),
                 text(format!("Credits - {}", self.credits)).size(20)
             ],
+            Space::new(Length::Units(10), Length::Units(10)),
             row_actions
         ]
         .into();
@@ -176,5 +203,13 @@ impl Application for VideoPoker {
 
     fn theme(&self) -> Theme {
         Theme::Dark
+    }
+
+    
+}
+
+impl VideoPoker{
+    fn check_win(&mut self) {
+
     }
 }
