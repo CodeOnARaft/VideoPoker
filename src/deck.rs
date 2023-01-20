@@ -20,14 +20,14 @@ impl Deck {
 
     fn get_suit(suit: Suits) -> Vec<Card> {
         vec![
-            Card::new(CardValue::Two, suit.clone()),
-            Card::new(CardValue::Three, suit.clone()),
-            Card::new(CardValue::Four, suit.clone()),
-            Card::new(CardValue::Five, suit.clone()),
-            Card::new(CardValue::Six, suit.clone()),
-            Card::new(CardValue::Seven, suit.clone()),
-            Card::new(CardValue::Eight, suit.clone()),
-            Card::new(CardValue::Nine, suit.clone()),
+            Card::new(CardValue::Number(2), suit.clone()),
+            Card::new(CardValue::Number(3), suit.clone()),
+            Card::new(CardValue::Number(4), suit.clone()),
+            Card::new(CardValue::Number(5), suit.clone()),
+            Card::new(CardValue::Number(6), suit.clone()),
+            Card::new(CardValue::Number(7), suit.clone()),
+            Card::new(CardValue::Number(8), suit.clone()),
+            Card::new(CardValue::Number(9), suit.clone()),
             Card::new(CardValue::Jack, suit.clone()),
             Card::new(CardValue::Queen, suit.clone()),
             Card::new(CardValue::King, suit.clone()),

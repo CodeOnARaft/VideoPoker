@@ -1,6 +1,5 @@
-use iced::futures::future::OrElse;
 use iced::widget::{button, column, container, image, row, text, Space};
-use iced::{executor, Application, Command, Element, Length, Settings, Theme, window};
+use iced::{executor, window, Application, Command, Element, Length, Settings, Theme};
 
 mod card;
 mod deck;
@@ -11,10 +10,10 @@ use crate::deck::*;
 fn main() -> iced::Result {
     let settings = Settings {
         window: window::Settings {
-            size: (700,450),
+            size: (700, 450),
             resizable: false,
             decorations: true,
-            position:window::Position::Centered,
+            position: window::Position::Centered,
             ..Default::default()
         },
         ..Default::default()
@@ -25,15 +24,15 @@ fn main() -> iced::Result {
 enum Actions {
     Holding,
     Betting,
-    Payouts,
 }
 struct VideoPoker {
     action: Actions,
     deck: Deck,
-    bet: i8,
-    last_bet: i8,
+    bet: i32,
+    last_bet: i32,
     credits: i32,
     hand: Vec<Card>,
+    show_payouts: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -42,7 +41,6 @@ enum Message {
     BetMax,
     BetOne,
     Deal,
-    GameStart,
     Payouts,
 }
 
@@ -65,8 +63,9 @@ impl Application for VideoPoker {
             Card::back(),
             Card::back(),
             Card::back(),
-            Card::back(),            
+            Card::back(),
         ];
+        let show_payouts = false;
         (
             Self {
                 action,
@@ -75,6 +74,7 @@ impl Application for VideoPoker {
                 last_bet,
                 credits,
                 hand,
+                show_payouts,
             },
             iced::Command::none(),
         )
@@ -97,33 +97,32 @@ impl Application for VideoPoker {
             }
 
             Message::BetMax => {
-                self.bet = 5;            
+                self.bet = 5;
+
+                self.deal();
             }
 
             Message::Deal => match self.action {
                 Actions::Betting => {
-                    self.hand = vec![
-                        self.deck.next(),
-                        self.deck.next(),
-                        self.deck.next(),
-                        self.deck.next(),
-                        self.deck.next(),                     
-                    ];
-                    self.action = Actions::Holding;
+                    if self.bet == 0 {
+                        self.bet = self.last_bet;
+                    }
+                    self.deal();
                 }
 
                 Actions::Holding => {
-                  for x in 0..5 {
-                    if !self.hand[x].hold {
-                        self.hand[x] = self.deck.next();
+                    for x in 0..5 {
+                        if !self.hand[x].hold {
+                            self.hand[x] = self.deck.next();
+                        }
                     }
-                  }
-                    self.check_win(); 
+                    self.check_win();
 
                     self.deck.shuffle();
+                    self.bet = 0;
                     self.action = Actions::Betting;
                 }
-                _ => {}
+                
             },
 
             _ => {}
@@ -149,7 +148,7 @@ impl Application for VideoPoker {
                 bet_max = bet_max.on_press(Message::BetMax);
                 payouts = payouts.on_press(Message::Payouts);
             }
-            _ => {}
+            
         }
 
         let mut cards = row![];
@@ -173,10 +172,18 @@ impl Application for VideoPoker {
                 button,
             ]);
 
-            cards = cards.push( Space::new(Length::Units(30), Length::Units(20)));
+            cards = cards.push(Space::new(Length::Units(30), Length::Units(20)));
         }
 
-        let row_actions = row![bet_one, Space::new(Length::Units(20), Length::Units(20)), bet_max, Space::new(Length::Units(20), Length::Units(20)), payouts, Space::new(Length::Units(20), Length::Units(20)), deal,];
+        let row_actions = row![
+            bet_one,
+            Space::new(Length::Units(20), Length::Units(20)),
+            bet_max,
+            Space::new(Length::Units(20), Length::Units(20)),
+            payouts,
+            Space::new(Length::Units(20), Length::Units(20)),
+            deal,
+        ];
 
         let content: Element<_> = column![
             text("Video Poker").size(60),
@@ -204,12 +211,156 @@ impl Application for VideoPoker {
     fn theme(&self) -> Theme {
         Theme::Dark
     }
-
-    
 }
 
-impl VideoPoker{
+impl VideoPoker {
     fn check_win(&mut self) {
+        let flush = self.check_flush();
 
+        let values = self.get_card_values();
+        let (straight, ace_high) = VideoPoker::check_straight(&values);
+        let royal = straight & flush & ace_high;
+        let (fourkind, threekind, pair,two_pair, jacks_or_better) = VideoPoker::check_matching(&values);
+        let fullhouse = threekind & pair;
+
+        self.payout(
+            royal,
+            flush,
+            straight,
+            fullhouse,
+            fourkind,
+            threekind,
+            two_pair,
+            jacks_or_better,
+        );
+    }
+
+    fn check_matching(values: &Vec<i16>) -> (bool, bool, bool, bool,bool) {
+        let mut fourkind = false;
+        let mut threekind = false;
+        let mut pair = false;
+        let mut jacks_or_better = false;
+        let mut two_pair = false;
+
+        for x in 0..14 {
+            match values[x] {
+                2 => {
+                    two_pair = pair;
+                    pair = true;
+                    jacks_or_better = jacks_or_better | (x >= 10);
+                }
+                3 => threekind = true,
+                4 => fourkind = true,
+                _ => {}
+            }
+        }
+
+        (fourkind, threekind, pair,two_pair, jacks_or_better)
+    }
+
+    fn check_straight(values: &Vec<i16>) -> (bool, bool) {
+        let mut index = 0;
+        for x in 2..10 {
+            if values[x] == 1 {
+                index = x;
+                break;
+            }
+        }
+
+        let straight = (values[index + 2] == 1)
+            & (values[index + 3] == 1)
+            & (values[index + 4] == 1)
+            & (values[index + 5] == 1);
+
+        let mut ace_high = false;
+
+        if straight {
+            ace_high = values[13] == 1;
+        }
+
+        (straight, ace_high)
+    }
+
+    fn check_flush(&self) -> bool {
+        (self.hand[0].suit == self.hand[1].suit)
+            & (self.hand[1].suit == self.hand[2].suit)
+            & (self.hand[2].suit == self.hand[3].suit)
+            & (self.hand[3].suit == self.hand[4].suit)
+    }
+
+    fn get_card_values(&self) -> Vec<i16> {
+        let mut values = vec![0; 14];
+
+        for x in 0..5 {
+            match self.hand[x].value {
+                CardValue::Number(val) => values[val as usize] += 1,
+                CardValue::Jack => values[10] += 1,
+                CardValue::Queen => values[11] += 1,
+                CardValue::King => values[12] += 1,
+                CardValue::Ace => values[13] += 1,
+                _ => {}
+            }
+        }
+
+        values
+    }
+
+    fn deal(&mut self) {
+
+        self.hand = vec![
+            self.deck.next(),
+            self.deck.next(),
+            self.deck.next(),
+            self.deck.next(),
+            self.deck.next(),
+        ];
+
+        self.last_bet = self.bet;
+        self.credits -= self.bet;
+        self.action = Actions::Holding;
+    }
+
+    fn payout(
+        &mut self,
+        royal: bool,
+        flush: bool,
+        straight: bool,
+        fullhouse: bool,
+        fourkind: bool,
+        threekind: bool,
+        two_pair:bool,
+        jacks_or_better: bool,
+    ) {
+        let payout_royal = vec![250, 500, 750, 1000];
+        let payout_straight_flush = vec![50, 100, 150, 200, 250];
+        let payout_fourkind = vec![25, 50, 75, 100];
+
+        if self.bet < 1 {
+            self.bet = 1
+        };
+        if self.bet > 5 {
+            self.bet = 5
+        };
+
+        if royal {
+            self.credits += payout_royal[(self.bet - 1) as usize];
+        } else if flush && straight {
+            self.credits += payout_straight_flush[(self.bet - 1) as usize];
+        } else if fourkind {
+            self.credits += payout_fourkind[(self.bet - 1) as usize];
+        } else if fullhouse {
+            self.credits += 9 * self.bet ;
+        } else if flush {
+            self.credits += 6 * self.bet;
+        } else if straight {
+            self.credits += 4 * self.bet;
+        } else if threekind {
+            self.credits += 3 * self.bet;
+        } else if two_pair {
+            self.credits += 2 * self.bet;
+        }
+        if jacks_or_better {
+            self.credits += self.bet;
+        }
     }
 }

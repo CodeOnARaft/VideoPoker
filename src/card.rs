@@ -1,4 +1,4 @@
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum Suits {
     Back,
     Club,
@@ -7,17 +7,10 @@ pub enum Suits {
     Spade,
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum CardValue {
     Back,
-    Two,
-    Three,
-    Four,
-    Five,
-    Six,
-    Seven,
-    Eight,
-    Nine,
+    Number(i32),
     Jack,
     Queen,
     King,
@@ -59,15 +52,12 @@ impl Card {
     }
 
     fn get_image_location(value: &CardValue, suit: &Suits) -> String {
+        let mut temp:String="".to_owned();
         let val_str = match value {
-            CardValue::Two => "2",
-            CardValue::Three => "3",
-            CardValue::Four => "4",
-            CardValue::Five => "5",
-            CardValue::Six => "6",
-            CardValue::Seven => "7",
-            CardValue::Eight => "8",
-            CardValue::Nine => "9",
+            CardValue::Number(num) => {
+                temp = num.to_string();
+                temp.as_str()
+            },            
             CardValue::Jack => "jack",
             CardValue::Queen => "queen",
             CardValue::King => "king",
