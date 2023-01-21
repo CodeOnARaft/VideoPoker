@@ -28,6 +28,7 @@ impl Deck {
             Card::new(CardValue::Number(7), suit.clone()),
             Card::new(CardValue::Number(8), suit.clone()),
             Card::new(CardValue::Number(9), suit.clone()),
+            Card::new(CardValue::Number(10), suit.clone()),
             Card::new(CardValue::Jack, suit.clone()),
             Card::new(CardValue::Queen, suit.clone()),
             Card::new(CardValue::King, suit.clone()),

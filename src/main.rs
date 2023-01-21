@@ -242,7 +242,7 @@ impl VideoPoker {
         let mut jacks_or_better = false;
         let mut two_pair = false;
 
-        for x in 0..14 {
+        for x in 0..15 {
             match values[x] {
                 2 => {
                     two_pair = pair;
@@ -260,22 +260,22 @@ impl VideoPoker {
 
     fn check_straight(values: &Vec<i16>) -> (bool, bool) {
         let mut index = 0;
-        for x in 2..10 {
+        for x in 2..11 {
             if values[x] == 1 {
                 index = x;
                 break;
             }
         }
 
-        let straight = (values[index + 2] == 1)
+        let straight = (values[index + 1] == 1)
+            & (values[index + 2] == 1)
             & (values[index + 3] == 1)
-            & (values[index + 4] == 1)
-            & (values[index + 5] == 1);
+            & (values[index + 4] == 1);
 
         let mut ace_high = false;
 
         if straight {
-            ace_high = values[13] == 1;
+            ace_high = values[14] == 1;
         }
 
         (straight, ace_high)
@@ -289,15 +289,15 @@ impl VideoPoker {
     }
 
     fn get_card_values(&self) -> Vec<i16> {
-        let mut values = vec![0; 14];
+        let mut values = vec![0; 15];
 
         for x in 0..5 {
             match self.hand[x].value {
                 CardValue::Number(val) => values[val as usize] += 1,
-                CardValue::Jack => values[10] += 1,
-                CardValue::Queen => values[11] += 1,
-                CardValue::King => values[12] += 1,
-                CardValue::Ace => values[13] += 1,
+                CardValue::Jack => values[11] += 1,
+                CardValue::Queen => values[12] += 1,
+                CardValue::King => values[13] += 1,
+                CardValue::Ace => values[14] += 1,
                 _ => {}
             }
         }
