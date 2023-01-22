@@ -52,7 +52,7 @@ impl Card {
     }
 
     fn get_image_location(value: &CardValue, suit: &Suits) -> String {
-        let mut temp:String="".to_owned();
+        let temp:String;
         let val_str = match value {
             CardValue::Number(num) => {
                 temp = num.to_string();

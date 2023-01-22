@@ -1,11 +1,12 @@
-use iced::widget::{button, column, container, image, row, text, Space};
-use iced::{executor, window, Application, Command, Element, Length, Settings, Theme};
+use iced::{executor, window, Application, Command, Element, Settings, Theme};
 
 mod card;
 mod deck;
+mod ui;
 
 use crate::card::*;
 use crate::deck::*;
+use crate::ui::*;
 
 fn main() -> iced::Result {
     let settings = Settings {
@@ -21,11 +22,11 @@ fn main() -> iced::Result {
     VideoPoker::run(settings)
 }
 
-enum Actions {
+pub enum Actions {
     Holding,
     Betting,
 }
-struct VideoPoker {
+pub struct VideoPoker {
     action: Actions,
     deck: Deck,
     bet: i32,
@@ -33,15 +34,17 @@ struct VideoPoker {
     credits: i32,
     hand: Vec<Card>,
     show_payouts: bool,
+    show_game_over :bool,
 }
 
 #[derive(Clone, Debug)]
-enum Message {
+pub enum Message {
     CardHoldToggle(i32),
     BetMax,
     BetOne,
     Deal,
     Payouts,
+    Restart,
 }
 
 impl Application for VideoPoker {
@@ -66,6 +69,7 @@ impl Application for VideoPoker {
             Card::back(),
         ];
         let show_payouts = false;
+        let show_game_over = false;
         (
             Self {
                 action,
@@ -75,6 +79,7 @@ impl Application for VideoPoker {
                 credits,
                 hand,
                 show_payouts,
+                show_game_over,
             },
             iced::Command::none(),
         )
@@ -102,6 +107,15 @@ impl Application for VideoPoker {
                 self.deal();
             }
 
+            Message::Payouts =>{
+                self.show_payouts = !self.show_payouts;
+            }
+
+            Message::Restart=>{
+                self.credits = 200;
+                self.show_game_over = false;
+            }
+
             Message::Deal => match self.action {
                 Actions::Betting => {
                     if self.bet == 0 {
@@ -121,91 +135,30 @@ impl Application for VideoPoker {
                     self.deck.shuffle();
                     self.bet = 0;
                     self.action = Actions::Betting;
+                    if self.credits == 0 {
+                        self.show_game_over = true;
+                    }
                 }
                 
             },
 
-            _ => {}
+            
         }
 
         Command::none()
     }
 
     fn view(&self) -> Element<Message> {
-        let mut bet_one = button("Bet One");
-        let mut bet_max = button("Bet Max");
-        let mut payouts = button("Payouts");
-        let deal = button("Deal").on_press(Message::Deal);
 
-        let mut action_holding = false;
-        match self.action {
-            Actions::Holding => {
-                action_holding = true;
-            }
-
-            Actions::Betting => {
-                bet_one = bet_one.on_press(Message::BetOne);
-                bet_max = bet_max.on_press(Message::BetMax);
-                payouts = payouts.on_press(Message::Payouts);
-            }
-            
+        if self.show_payouts{
+            return payouts::Payouts::view();
         }
 
-        let mut cards = row![];
-        for x in 0..5 {
-            let hh = if self.hand[x as usize].hold {
-                text("Holding").size(20)
-            } else {
-                text("       ").size(20)
-            };
-
-            let button = if action_holding {
-                button("Hold").on_press(Message::CardHoldToggle(x as i32))
-            } else {
-                button("Hold")
-            };
-            cards = cards.push(column![
-                hh,
-                Space::new(Length::Units(10), Length::Units(10)),
-                image(&self.hand[x].image_location).width(Length::Units(100)),
-                Space::new(Length::Units(10), Length::Units(10)),
-                button,
-            ]);
-
-            cards = cards.push(Space::new(Length::Units(30), Length::Units(20)));
+        if self.show_game_over {
+            return game_over::GameOver::view();
         }
 
-        let row_actions = row![
-            bet_one,
-            Space::new(Length::Units(20), Length::Units(20)),
-            bet_max,
-            Space::new(Length::Units(20), Length::Units(20)),
-            payouts,
-            Space::new(Length::Units(20), Length::Units(20)),
-            deal,
-        ];
-
-        let content: Element<_> = column![
-            text("Video Poker").size(60),
-            Space::new(Length::Units(10), Length::Units(10)),
-            cards,
-            Space::new(Length::Units(10), Length::Units(10)),
-            row![
-                text(format!("Bet - {}", self.bet)).size(20),
-                Space::new(Length::Units(20), Length::Units(20)),
-                text(format!("Credits - {}", self.credits)).size(20)
-            ],
-            Space::new(Length::Units(10), Length::Units(10)),
-            row_actions
-        ]
-        .into();
-
-        container(content)
-            .center_x()
-            .center_y()
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .into()
+        game::Game::view(self)
     }
 
     fn theme(&self) -> Theme {
@@ -301,7 +254,6 @@ impl VideoPoker {
                 _ => {}
             }
         }
-
         values
     }
 
@@ -331,9 +283,9 @@ impl VideoPoker {
         two_pair:bool,
         jacks_or_better: bool,
     ) {
-        let payout_royal = vec![250, 500, 750, 1000];
+        let payout_royal = vec![250, 500, 750, 1000,4000];
         let payout_straight_flush = vec![50, 100, 150, 200, 250];
-        let payout_fourkind = vec![25, 50, 75, 100];
+        let payout_fourkind = vec![25, 50, 75, 100,125];
 
         if self.bet < 1 {
             self.bet = 1
